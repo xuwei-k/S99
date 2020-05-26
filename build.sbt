@@ -1,11 +1,11 @@
 name := "S99"
 
-scalaVersion := "2.12.11"
+scalaVersion := dottyLatestNightlyBuild.get
 
 libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.2.0" % "test",
   "org.scalacheck" %% "scalacheck" % "1.14.3" % "test"
-)
+).map(_ withDottyCompat scalaVersion.value)
 
 val unusedWarnings = Def.setting(
   CrossVersion.partialVersion(scalaVersion.value) match {
@@ -16,15 +16,24 @@ val unusedWarnings = Def.setting(
   }
 )
 
-scalacOptions ++= (
-  "-deprecation" ::
-    "-unchecked" ::
-    "-Xlint" ::
-    "-language:existentials" ::
-    "-language:higherKinds" ::
-    "-language:implicitConversions" ::
-    Nil
-) ::: unusedWarnings.value
+scalacOptions ++= Seq(
+  "-deprecation",
+  "-unchecked",
+)
+
+scalacOptions ++= {
+  val common = "-language:existentials,higherKinds,implicitConversions"
+  if (isDotty.value) {
+    Seq(
+      common + ",Scala2Compat",
+    )
+  } else {
+    (unusedWarnings.value: @sbtUnchecked) ++ Seq(
+      common,
+      "-Xlint",
+    )
+  }
+}
 
 scalacOptions ++= {
   CrossVersion.partialVersion(scalaVersion.value) match {
